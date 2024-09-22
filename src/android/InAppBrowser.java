@@ -24,6 +24,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.res.ColorStateList;
 import android.os.Parcelable;
 import android.provider.Browser;
 import android.content.res.Resources;
@@ -60,6 +61,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -126,6 +128,8 @@ public class InAppBrowser extends CordovaPlugin {
     private InAppBrowserDialog dialog;
     private WebView inAppWebView;
     private EditText edittext;
+    private ProgressBar progressBarToolbar;
+    private ProgressBar progressBarLoadingPage;
     private CallbackContext callbackContext;
     private boolean showLocationBar = true;
     private boolean showZoomControls = true;
@@ -897,6 +901,21 @@ public class InAppBrowser extends CordovaPlugin {
                 View close = createCloseButton(closeButtonId);
                 toolbar.addView(close);
 
+                // Progress Bar
+                progressBarToolbar = new ProgressBar(webView.getContext(), null, android.R.attr.progressBarStyleLarge);
+                progressBarToolbar.setIndeterminate(true);
+                progressBarToolbar.setVisibility(View.VISIBLE);
+                progressBarToolbar.getIndeterminateDrawable().setColorFilter(0xFFFFFFFF, android.graphics.PorterDuff.Mode.MULTIPLY);
+                RelativeLayout progressBarToolbarLayout = new RelativeLayout(cordova.getActivity());
+                RelativeLayout.LayoutParams progressBarLayoutParams = new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT, this.dpToPixels(TOOLBAR_HEIGHT));
+                progressBarLayoutParams.addRule(RelativeLayout.RIGHT_OF, 1);
+                progressBarLayoutParams.addRule(RelativeLayout.LEFT_OF, 5);
+                progressBarToolbarLayout.setLayoutParams(progressBarLayoutParams);
+                progressBarToolbarLayout.setVerticalGravity(Gravity.TOP);
+                progressBarToolbarLayout.setHorizontalGravity(Gravity.END);
+                progressBarToolbarLayout.addView(progressBarToolbar);
+                toolbar.addView(progressBarToolbarLayout);
+
                 // Footer
                 RelativeLayout footer = new RelativeLayout(cordova.getActivity());
                 int _footerColor;
@@ -916,12 +935,22 @@ public class InAppBrowser extends CordovaPlugin {
                 View footerClose = createCloseButton(7);
                 footer.addView(footerClose);
 
+                // Progress of loading a page.
+                progressBarLoadingPage = new ProgressBar(webView.getContext(), null, android.R.attr.progressBarStyleHorizontal);
+                progressBarLoadingPage.setLayoutParams((new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)));
+
                 // WebView
                 inAppWebView = new WebView(cordova.getActivity());
+                inAppWebView.setBackgroundColor(Color.WHITE);
                 inAppWebView.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
                 inAppWebView.setId(Integer.valueOf(6));
                 // File Chooser Implemented ChromeClient
                 inAppWebView.setWebChromeClient(new InAppChromeClient(thatWebView) {
+                    public void onProgressChanged(WebView view, int progress)
+                    {
+                        progressBarLoadingPage.setProgress(progress);
+                        progressBarLoadingPage.setVisibility(progress == 100 ? ProgressBar.GONE : ProgressBar.VISIBLE);
+                    }
                     public boolean onShowFileChooser (WebView webView, ValueCallback<Uri[]> filePathCallback, WebChromeClient.FileChooserParams fileChooserParams)
                     {
                         LOG.d(LOG_TAG, "File Chooser 5.0+");
@@ -1048,6 +1077,7 @@ public class InAppBrowser extends CordovaPlugin {
                 RelativeLayout webViewLayout = new RelativeLayout(cordova.getActivity());
                 webViewLayout.addView(inAppWebView);
                 main.addView(webViewLayout);
+                webViewLayout.addView(progressBarLoadingPage);
 
                 // Don't add the footer unless it's been enabled
                 if (showFooter) {
@@ -1367,6 +1397,7 @@ public class InAppBrowser extends CordovaPlugin {
             } catch (JSONException ex) {
                 LOG.e(LOG_TAG, "URI passed in has caused a JSON error.");
             }
+            progressBarToolbar.setVisibility(View.VISIBLE);
         }
 
         public void onPageFinished(WebView view, String url) {
@@ -1391,6 +1422,7 @@ public class InAppBrowser extends CordovaPlugin {
             } catch (JSONException ex) {
                 LOG.d(LOG_TAG, "Should never happen");
             }
+            progressBarToolbar.setVisibility(View.GONE);
         }
 
         public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
@@ -1407,6 +1439,7 @@ public class InAppBrowser extends CordovaPlugin {
             } catch (JSONException ex) {
                 LOG.d(LOG_TAG, "Should never happen");
             }
+            progressBarToolbar.setVisibility(View.GONE);
         }
 
         @Override
