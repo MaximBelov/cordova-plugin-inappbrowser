@@ -720,10 +720,10 @@ public class InAppBrowser extends CordovaPlugin {
             if (footerColorSet != null) {
                 footerColor = footerColorSet;
             }
+            // Reset when the option is absent, so a colour set on one open does
+            // not carry over to later ones for the life of the process.
             String backgroundColorSet = features.get(BACKGROUND_COLOR);
-            if (backgroundColorSet != null) {
-                backgroundColor = backgroundColorSet;
-            }
+            backgroundColor = backgroundColorSet != null ? backgroundColorSet : "";
             if (features.get(BEFORELOAD) != null) {
                 beforeload = features.get(BEFORELOAD);
             }
